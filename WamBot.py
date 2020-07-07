@@ -1,22 +1,25 @@
 from selenium import webdriver
 from time import sleep
 import sqlite3 as sql
+from twilio.rest import Client
+import os
 
-
-# TODO: Implement notifications system
 
 class WamBot:
-    def __init__(self, usrname, name, password):
+    def __init__(self, usrname, name, password, phonenum):
         self.driver = webdriver.Chrome()
         self.usrname = usrname
         self.name = name
         self.password = password
         self.conn = sql.connect('wambase.db')
         self.cursor = self.conn.cursor()
+        self.phonenum = 'whatsapp:'+phonenum
+        self.from_whatsapp_number = 'whatsapp:+14155238886'
         try:
             self.conn.execute("CREATE TABLE " + self.name +
                               " (datetime TEXT NOT NULL, WAM REAL NOT NULL) ")
         except sql.OperationalError:
+            # filller
             self.cursor = self.conn.cursor()
 
     def login(self):
@@ -56,7 +59,11 @@ class WamBot:
         # Switching Windows while keeping the old one in memory
         base_window = self.driver.window_handles[0]
         new_window = self.driver.window_handles[1]
-
+        client = Client()
+        client.messages.create(body="You have successfully established a connectionwith WAMBot \n "+
+                                    "You may relax!, until we tell you your WAM has changed! ",
+                               from_=self.from_whatsapp_number,
+                               to=self.phonenum)
         self.driver.switch_to.window(new_window)
 
     def check_wam(self):
@@ -70,5 +77,14 @@ class WamBot:
         )
         self.conn.commit()
 
-    def send_notification(self):
-        return
+    def send_notification(self, prevWAM, newWAM):
+        client = Client()
+        client.messages.create(body='Your WAM has changed from '+str(prevWAM)+' to '+str(newWAM)+'.',
+                               from_ = self.from_whatsapp_number,
+                               to=self.phonenum)
+
+    def send_no_change_notif(self):
+        client=Client()
+        client.messages.create(body="Your WAM hasn't changed since the last message",
+                               from_=self.from_whatsapp_number,
+                               to=self.phonenum)
