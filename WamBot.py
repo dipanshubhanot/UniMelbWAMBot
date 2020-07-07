@@ -2,29 +2,27 @@ from selenium import webdriver
 from time import sleep
 import sqlite3 as sql
 
-# TODO: Implement Continuous Checking
-# TODO: Implement Database Functionality
+
 # TODO: Implement notifications system
 
-class WamBot():
-    def __init__(self):
+class WamBot:
+    def __init__(self, usrname, name, password):
         self.driver = webdriver.Chrome()
-        self.usrname = 'dbhanot'
-        self.name= 'Deepanshu'
-        self.password = 'NeuerKlose11'
+        self.usrname = usrname
+        self.name = name
+        self.password = password
         self.conn = sql.connect('wambase.db')
-        
-        # Creating a USERS TABLE
-        self.conn.execute('''CREATE TABLE USERS
-        (USR    TEXT   PRIMARY KEY   NOT NULL,
-        NAME TEXT NOT NULL,
-        PASS TEXT NOT NULL)''')
-        
-        
+        self.cursor = self.conn.cursor()
+        try:
+            self.conn.execute("CREATE TABLE " + self.name +
+                              " (datetime TEXT NOT NULL, WAM REAL NOT NULL) ")
+        except sql.OperationalError:
+            self.cursor = self.conn.cursor()
+
     def login(self):
         self.driver.get('https://my.unimelb.edu.au')
 
-        sleep(3);
+        sleep(3)
 
         usrNameField = self.driver.find_element_by_xpath('//*[@id="usernameInput"]')
         passField = self.driver.find_element_by_xpath('//*[@id="passwordInput"]')
@@ -51,7 +49,7 @@ class WamBot():
         examsPage.click()
 
     def open_recent_results(self):
-        recentresults = self.driver.find_element_by_xpath('//*[@id="cardStudentAdminBody"]/ul[2]/li[1]/a')
+        recentresults = self.driver.find_element_by_xpath('/html/body/main/div[2]/div[1]/div/div/ul[2]/li[1]/a')
         recentresults.click()
 
     def switch_wam_window(self):
@@ -63,5 +61,14 @@ class WamBot():
 
     def check_wam(self):
         wam = self.driver.find_element_by_xpath('//*[@id="ctl00_Content_lblResultSummary"]/div[1]/b')
-        currwam = wam.text
-        print(currwam)
+        currwam = float(wam.text)
+        return currwam
+
+    def store_wam(self, wam):
+        self.conn.execute(
+            "INSERT INTO " + self.name + " (datetime, WAM)  VALUES (CURRENT_TIMESTAMP, " + str(wam) + ")"
+        )
+        self.conn.commit()
+
+    def send_notification(self):
+        return
